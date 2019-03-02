@@ -1,56 +1,59 @@
-import org.scalatest._
-
-class LinkedMapSpec extends FlatSpec {
-
-  val linkedMap = LinkedMap.apply(("1", 1), ("2", 2), ("3", 3))
+import org.scalatest.{Matchers, PropSpec}
+import org.scalatest.prop.PropertyChecks
 
 
-  "A LinkedMap" should "create LinkedMap with updated values" in {
-    val updatedLinkedMap = linkedMap.update("2", 3).update("1", 3)
-
-    assert(updatedLinkedMap.apply("1").get == 3)
-    assert(updatedLinkedMap.apply("2").get == 3)
+class LinkedMapSpec extends PropSpec with Matchers with PropertyChecks {
+  property("empty map contains nothing") {
+    forAll { key: Int =>
+      val empty = LinkedMap[Int, String]()
+      empty.contains(key) shouldBe false
+      empty(key) shouldBe None
+    }
   }
 
-  "A LinkedMap" should "should contain 1, 2, 3" in {
-    assert(linkedMap.contains("1"))
-    assert(linkedMap.contains("2"))
-    assert(linkedMap.contains("3"))
+  property("singleton map contains it's key") {
+    forAll { (key1: Int, value: String, key2: Int) =>
+      val singleton = LinkedMap[Int, String](key1 -> value)
+      singleton.contains(key1) shouldBe true
+      singleton(key1) shouldBe Some(value)
+      singleton.contains(key2) shouldBe (key1 == key2)
+    }
   }
 
-  "A LinkedMap" should "should reverse" in {
-    val updatedLinkedMap = linkedMap.reverse
-    assert(updatedLinkedMap.linkedList.getFirst._2 == 3)
+  property("deleted data should not be found") {
+    forAll { (elems: List[(String, Int)], key: String) =>
+      val removed = LinkedMap(elems: _*).delete(key)
+      removed.contains(key) shouldBe false
+      removed(key) shouldBe None
+    }
   }
 
-  "A LinkedMap" should "should delete all elemets" in {
-    val updatedLinkedMap = linkedMap.delete("2").delete("1").delete("3")
-    assert(updatedLinkedMap.isEmpty)
+  property("updated element should always be in map") {
+    forAll { (elems: List[(Int, String)], key: Int, value: String) =>
+      val updated = LinkedMap(elems: _*)(key) = value
+      updated.contains(key) shouldBe true
+      updated(key) shouldBe Some(value)
+    }
   }
 
-  "A LinkedMap" should "should ++ ('4',4),('5',5)" in {
-    val updatedLinkedMap = linkedMap.++(LinkedMap.apply(("4", 4), ("5", 5)))
-    assert(updatedLinkedMap.apply("4").getOrElse(0) == 4)
-    assert(updatedLinkedMap.apply("5").getOrElse(0) == 5)
+  property("maps are equivalent when non repeating lists are quivalent") {
+    forAll { (m1: Map[String, String], m2: Map[String, String]) =>
+      val l1 = m1.toList
+      val l2 = m2.toList
+      (LinkedMap(l1: _*) == LinkedMap(l2: _*)) shouldBe (l1 == l2)
+    }
   }
 
-  "A LinkedMap" should "map mutate to (String, String)" in {
-    val updatedLinkedMap = linkedMap.mapValues((value: Int) => value.toString)
-    assert(updatedLinkedMap.apply("3").getOrElse(0) == "3")
+  property("mapped map should be correct") {
+    forAll { (l: List[(String, Int)], f: Int => String) =>
+      LinkedMap(l: _*).mapValues(f) shouldBe LinkedMap(l.map { case (k, v) => k -> f(v) }: _*)
+    }
   }
 
-  "A LinkedMap" should s"map mutate to (key,#value+#key) (String, String)" in {
-    val updatedLinkedMap = linkedMap.mapWithKey((key: String, value: Int) => value.toString + key)
-    assert(updatedLinkedMap.apply("3").getOrElse(0) == "33")
+  property("key-value mapped map should be correct") {
+    forAll { (l: List[(Int, String)], f: (Int, String) => Double) =>
+      LinkedMap(l: _*).mapWithKey(f) shouldBe LinkedMap(l.map { case (k, v) => k -> f(k, v) }: _*)
+    }
   }
-
-  "A LinkedMap" should s"map should do stringBuffer" in {
-    val stringBuffer = new StringBuffer()
-    linkedMap.foreach[Unit](pair => {
-      stringBuffer append pair._1 append pair._2
-    })
-    assert(stringBuffer.toString == "112233")
-  }
-
 
 }
