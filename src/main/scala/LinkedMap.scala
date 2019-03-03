@@ -1,74 +1,105 @@
-import java.util
+import LinkedMap.{Cons, Empty}
 
-import scala.collection.JavaConverters._
+import scala.annotation.tailrec
 
 sealed trait LinkedMap[K, V] extends Traversable[(K, V)] {
 
-  val hashMap: util.HashMap[K, V] = new util.HashMap[K, V]()
-  val linkedList: util.LinkedList[(K, V)] = new util.LinkedList[(K, V)]()
-
   /** должен вернуть `false` если коллекция содержит хотя бы один элемент */
-  override def isEmpty: Boolean = hashMap.size == 0
+  override def isEmpty: Boolean = {
+    this match {
+      case Cons(_, _, _) => false
+      case Empty() => true
+    }
+  }
 
   /** должен вернуть `true` если коллекция содержит ключ `key` */
-  def contains(key: K): Boolean = hashMap.containsKey(key)
+  @tailrec final def contains(key: K): Boolean = this match {
+    case Cons(k, _, rest) => k == key || rest.contains(key)
+    case Empty() => false
+  }
 
   /** возвращает Some со значением значения, если коллекция содержит ключ `key`
     * и None если не содержит */
-  def apply(key: K): Option[V] = hashMap.asScala.get(key)
+  @tailrec final def apply(key: K): Option[V] = this match {
+    case Cons(k, v, _) if k == key => Option(v)
+    case Cons(k, _, rest) if k != key => rest.apply(key)
+    case Empty() => None
+  }
 
   /** возвращает новый LinkedMap[K, V],
     * в котором добавлено или изменено значение для ключа `key` на `value` */
-  def update(key: K, value: V): LinkedMap[K, V] = {
-    val hashMap = new util.HashMap[K, V](this.hashMap)
-    hashMap.put(key, value)
-    LinkedMap.apply(hashMap.asScala.toSeq: _*)
-  }
+  def update(key: K, value: V): LinkedMap[K, V] = Cons(key, value, this)
 
   /** возвращает новый LinkedMap[K, V]
     * состоящий из тех же позиций, но в обратном порядке */
-  def reverse: LinkedMap[K, V] = {
-    val linkedList = new util.LinkedList[(K, V)](this.linkedList)
-    LinkedMap.apply(linkedList.asScala.reverse: _*)
+  def reverse: LinkedMap[K, V] = this match {
+    case Cons(k, v, rest) => reverse(Cons(k, v, rest), rest, rest.getNext)
+    case Empty() => this
   }
 
+  @tailrec private def reverse(prev: LinkedMap[K, V], current: LinkedMap[K, V], next: LinkedMap[K, V]): LinkedMap[K, V] = {
+    (prev, current, next) match {
+      case (Cons(k1, v1, rest1), Cons(k2, v2, _), Cons(k3, v3, rest3)) => rest3.reverse(Cons(k2, v2, Cons(k1, v1, Empty())), Cons(k3, v3, rest3), rest3)
+      case (Cons(k1, v1, rest1), Cons(k2, v2, _), Empty()) => Cons(k2, v2, Cons(k1, v1, rest1))
+      case _ => this
+    }
+  }
+
+  //todo дублирование
   /** создаёт новый LinkedMap, состоящий из элементов `this` и `other`
     * если какой-то ключ встречается в обеих коллекциях,
     * может быть выбрано любое значение */
-  def ++(other: LinkedMap[K, V]): LinkedMap[K, V] = {
-    val linkedList = new util.LinkedList[(K, V)](this.linkedList).asScala ++ other.linkedList.asScala
-    LinkedMap.apply(linkedList: _*)
+  def ++(other: LinkedMap[K, V]): LinkedMap[K, V] = this match {
+    case Cons(k, v, rest) if rest != Empty() => Cons(k, v, rest ++ other)
+    case Cons(k, v, rest) if rest == Empty() => Cons(k, v, other)
+    case Empty() => this
   }
 
   /** создаёт новый LinkedMap , где ко всем значениям применена заданная функция */
-  def mapValues[W](f: V => W): LinkedMap[K, W] = {
-    val linkedList = new util.LinkedList[(K, V)](this.linkedList).asScala
-    LinkedMap.apply[K, W](linkedList.map(pair => (pair._1, f(pair._2))): _*)
+  def mapValues[W](f: V => W): LinkedMap[K, W] = this match {
+    case Cons(k, v, rest) if rest != Empty() => Cons[K, W](k, f(v), rest.mapValues(f))
+    case Cons(k, v, rest) if rest == Empty() => Cons[K, W](k, f(v), Empty())
+    case Empty() => Empty[K, W]()
   }
 
   /** создаёт новый LinkedMap , где ко всем значениям применена заданная функция,
     * учитывающая ключ */
-  def mapWithKey[W](f: (K, V) => W): LinkedMap[K, W] = {
-    val linkedList = new util.LinkedList[(K, V)](this.linkedList).asScala
-    LinkedMap.apply[K, W](linkedList.map(pair => (pair._1, f(pair._1, pair._2))): _*)
+  def mapWithKey[W](f: (K, V) => W): LinkedMap[K, W] = this match {
+    case Cons(k, v, rest) if rest != Empty() => Cons[K, W](k, f(k, v), rest.mapWithKey(f))
+    case Cons(k, v, rest) if rest == Empty() => Cons[K, W](k, f(k, v), Empty())
+    case Empty() => Empty[K, W]()
   }
 
   /** конструирует новый LinkedMap, содеоржащий все записи текущего, кроме заданного ключа */
-  def delete(key: K): LinkedMap[K, V] = {
-    val hashMap = new util.HashMap[K, V](this.hashMap).asScala
-    hashMap.remove(key)
-    LinkedMap.apply[K, V](hashMap.toSeq: _*)
+  def delete(key: K): LinkedMap[K, V] = this match {
+    case Cons(k, _, rest) if k != key => rest.delete(key)
+    case Cons(k, v, rest) if k == key => Cons(k, v, rest.getNext.getNext)
+    case Empty() => this
+  }
+
+  /** TODO Вовзращает типизированый следующий элемент */
+  private def getNext: LinkedMap[K, V] = this match {
+    case Cons(k1, v1, rest) if rest != Empty() => rest
+    case Cons(k1, v1, rest) if rest == Empty() => Empty()
+    case Empty() => Empty()
   }
 
   /** применяет действие `action` с побочным эффектом ко всем элементам коллекции */
-  def foreach[U](action: ((K, V)) => U): Unit = {
-    linkedList.asScala.foreach(pair => action(pair._1,pair._2))
+  def foreach[U](action: ((K, V)) => U): Unit = this match {
+    case Cons(k, v, rest) if rest != Empty() =>
+      action(k, v)
+      rest.foreach(action)
+    case Cons(k, v, rest) if rest == Empty() => action(k, v)
+    case Empty() =>
   }
 
+  override def toString(): String = this match {
+    case Cons(k, v, rest) => s"Cons($k,$v," + rest.toString() + ")"
+    case Empty() => "Empty()"
+  }
 }
 
 object LinkedMap {
-
 
   /** конструирует новый `LinkedMap` на основании приведённых элементов
     * каждый ключ должен присутствовать в результате только один раз
@@ -76,12 +107,7 @@ object LinkedMap {
     * выбрано любое из значений
     */
   def apply[K, V](kvs: (K, V)*): LinkedMap[K, V] = {
-    val linkedMap = new Empty[K, V]()
-    kvs.foreach(node => {
-      linkedMap.hashMap.put(node._1, node._2)
-      linkedMap.linkedList.add(node)
-    })
-    linkedMap
+    kvs.reverse.foldLeft(Empty[K, V](): LinkedMap[K, V]) { case (accum, (k, v)) if !accum.contains(k) => Cons(k, v, accum) }
   }
 
   final case class Cons[K, V](key: K, value: V, rest: LinkedMap[K, V]) extends LinkedMap[K, V]
@@ -89,5 +115,3 @@ object LinkedMap {
   final case class Empty[K, V]() extends LinkedMap[K, V]
 
 }
-
-
