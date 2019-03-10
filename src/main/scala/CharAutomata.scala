@@ -57,14 +57,14 @@ object CharAutomata {
   }
 
   /** класс для реализации метода `const` */
-  class Const[A] private[CharAutomata] (value: A) extends CharAutomata[A] {
+  class Const[A] private[CharAutomata](value: A) extends CharAutomata[A] {
     def consume(char: Char): CharAutomata[A] = ???
 
     def result: Either[String, A] = ???
   }
 
   /** класс для реализации метода `find` */
-  class Find private[CharAutomata] (substring: String) extends CharAutomata[Int] {
+  class Find private[CharAutomata](substring: String) extends CharAutomata[Int] {
     def consume(char: Char): CharAutomata[Int] = ???
 
     def result: Either[String, Int] = ???
@@ -85,16 +85,17 @@ object CharAutomata {
   }
 
   /** класс для реализации метода `and` */
-  class And[A, B] private[CharAutomata] (autoA: CharAutomata[A], autoB: CharAutomata[B]) extends CharAutomata[(A, B)] {
+  class And[A, B] private[CharAutomata](autoA: CharAutomata[A], autoB: CharAutomata[B]) extends CharAutomata[(A, B)] {
     def consume(char: Char): CharAutomata[(A, B)] = ???
 
     def result: Either[String, (A, B)] = ???
   }
 
   /** класс для реализации метода `or` */
-  class Or[A, B] private[CharAutomata] (autoA: CharAutomata[A], autoB: CharAutomata[B]) extends CharAutomata[Either[A, B]] {
+  class Or[A, B] private[CharAutomata](autoA: CharAutomata[A], autoB: CharAutomata[B]) extends CharAutomata[Either[A, B]] {
     def consume(char: Char): CharAutomata[Either[A, B]] = ???
 
     def result: Either[String, Either[A, B]] = ???
   }
+
 }
