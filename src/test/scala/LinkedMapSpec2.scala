@@ -6,12 +6,19 @@ class LinkedMapSpec2 extends FlatSpec {
 
 
   "A LinkedMap" should "create LinkedMap with updated values" in {
-    val updatedLinkedMap = linkedMap.update("2", 3).update("1", 3)
-    assert(updatedLinkedMap.apply("1").get == 3)
+    val updatedLinkedMap = linkedMap.update("2", 3)
+    assert(updatedLinkedMap.apply("1").get == 1)
     assert(updatedLinkedMap.apply("2").get == 3)
+    println(updatedLinkedMap)
     val updatedLinkedMap3 = linkedMap.update("7", 7).update("6", 6)
     assert(updatedLinkedMap3.apply("7").get == 7)
     assert(updatedLinkedMap3.apply("6").get == 6)
+    println(updatedLinkedMap3)
+
+    val linkedMap3 = LinkedMap((2147483647,""), (2147483647,""))
+    val updated4 = linkedMap3.update(0, "")
+    println(updated4)
+
   }
 
   "A LinkedMap" should "should contain 1, 2, 3" in {
@@ -33,6 +40,7 @@ class LinkedMapSpec2 extends FlatSpec {
     assert(updatedLinkedMap.apply("3").getOrElse(0) == 3)
     assert(updatedLinkedMap.apply("2").isEmpty)
     val updatedLinkedMap1 = updatedLinkedMap.delete("1").delete("1")
+    println(updatedLinkedMap1)
     assert(updatedLinkedMap1.apply("1").isEmpty)
     assert(updatedLinkedMap1.apply("2").isEmpty)
     assert(updatedLinkedMap1.apply("3").getOrElse(0) == 3)

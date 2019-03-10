@@ -34,7 +34,7 @@ sealed trait LinkedMap[K, V] extends Traversable[(K, V)] {
 
   @tailrec private def update(key: K, value: V, accumm: LinkedMap[K, V], updated: Boolean): LinkedMap[K, V] = this match {
     case Cons(k, v, rest) if k != key => rest.update(key, value, Cons(k, v, accumm), updated)
-    case Cons(k, _, rest) if k == key => rest.update(key, value, Cons(key, value, accumm.getNext), updated = true)
+    case Cons(k, _, rest) if k == key => rest.update(key, value, Cons(key, value, accumm), updated = true)
     case Empty() if !updated => Cons(key, value, accumm).reverse
     case Empty() if updated => accumm.reverse
   }
@@ -137,7 +137,10 @@ object LinkedMap {
     * выбрано любое из значений
     */
   def apply[K, V](kvs: (K, V)*): LinkedMap[K, V] = {
-    kvs.reverse.foldLeft(Empty[K, V](): LinkedMap[K, V]) { case (accum, (k, v)) if !accum.contains(k) => Cons(k, v, accum) }
+    kvs.reverse.foldLeft(Empty[K, V](): LinkedMap[K, V]) {
+      case (accum, (k, v)) if !accum.contains(k) => Cons(k, v, accum)
+      case (accum, (k, v)) => accum
+    }
   }
 
   final case class Cons[K, V](key: K, value: V, rest: LinkedMap[K, V]) extends LinkedMap[K, V]
