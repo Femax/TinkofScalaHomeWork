@@ -18,12 +18,9 @@ class LinkedMapSpec2 extends FlatSpec {
     assert(linkedMap.contains("3"))
   }
 
-  "A LinkedMap" should "should == after reverse to reversed" in {
-    val lm = LinkedMap(("1", 1), ("2", 2), ("3", 3))
-    val lmreversed = LinkedMap(("3", 3), ("2", 2), ("1", 1))
-    println(s"lm: $lm====>${lm.reverse}")
-    println(s"lmreversed: $lmreversed")
-    assert(lm.reverse == lmreversed)
+  "A LinkedMap" should "should reverse" in {
+    val updatedLinkedMap = linkedMap.reverse
+    assert(updatedLinkedMap.linkedList.head._2 == 3)
   }
 
   "A LinkedMap" should "should delete all elemets" in {
@@ -32,8 +29,7 @@ class LinkedMapSpec2 extends FlatSpec {
   }
 
   "A LinkedMap" should "should ++ ('4',4),('5',5)" in {
-    val updatedLinkedMap = linkedMap.++(LinkedMap(("4", 4), ("5", 5)))
-    print(updatedLinkedMap)
+    val updatedLinkedMap = linkedMap.++(LinkedMap.apply(("4", 4), ("5", 5)))
     assert(updatedLinkedMap.apply("4").getOrElse(0) == 4)
     assert(updatedLinkedMap.apply("5").getOrElse(0) == 5)
   }

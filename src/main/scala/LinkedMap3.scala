@@ -1,9 +1,9 @@
+import scala.collection.mutable
 
+sealed trait LinkedMap3[K, V] extends Traversable[(K, V)] {
 
-sealed trait LinkedMap[K, V] extends Traversable[(K, V)] {
-
-  var map = Map[K, V]()
-  var linkedList = List[(K, V)]()
+  val map = mutable.HashMap[K, V]()
+  val linkedList = mutable.Buffer[(K, V)]()
 
   /** должен вернуть `false` если коллекция содержит хотя бы один элемент */
   override def isEmpty: Boolean = map.isEmpty
@@ -17,37 +17,45 @@ sealed trait LinkedMap[K, V] extends Traversable[(K, V)] {
 
   /** возвращает новый LinkedMap[K, V],
     * в котором добавлено или изменено значение для ключа `key` на `value` */
-  def update(key: K, value: V): LinkedMap[K, V] = {
-    LinkedMap.apply((this.map + (key -> value)).toSeq: _*)
+  def update(key: K, value: V): LinkedMap3[K, V] = {
+    val map = this.map.clone()
+    map.put(key, value)
+    LinkedMap3.apply(map.toSeq: _*)
   }
 
   /** возвращает новый LinkedMap[K, V]
     * состоящий из тех же позиций, но в обратном порядке */
-  def reverse: LinkedMap[K, V] = {
-    LinkedMap.apply(linkedList.reverse: _*)
+  def reverse: LinkedMap3[K, V] = {
+    val linkedList = this.linkedList.clone()
+    LinkedMap3.apply(linkedList.reverse: _*)
   }
 
   /** создаёт новый LinkedMap, состоящий из элементов `this` и `other`
     * если какой-то ключ встречается в обеих коллекциях,
     * может быть выбрано любое значение */
-  def ++(other: LinkedMap[K, V]): LinkedMap[K, V] = {
-    LinkedMap.apply(this.linkedList ++ other: _*)
+  def ++(other: LinkedMap3[K, V]): LinkedMap3[K, V] = {
+    val linkedList = this.linkedList.clone() ++ other
+    LinkedMap3.apply(linkedList: _*)
   }
 
   /** создаёт новый LinkedMap , где ко всем значениям применена заданная функция */
-  def mapValues[W](f: V => W): LinkedMap[K, W] = {
-    LinkedMap.apply[K, W](linkedList.map(pair => (pair._1, f(pair._2))): _*)
+  def mapValues[W](f: V => W): LinkedMap3[K, W] = {
+    val linkedList = this.linkedList.clone()
+    LinkedMap3.apply[K, W](linkedList.map(pair => (pair._1, f(pair._2))): _*)
   }
 
   /** создаёт новый LinkedMap , где ко всем значениям применена заданная функция,
     * учитывающая ключ */
-  def mapWithKey[W](f: (K, V) => W): LinkedMap[K, W] = {
-    LinkedMap.apply[K, W](linkedList.map(pair => (pair._1, f(pair._1, pair._2))): _*)
+  def mapWithKey[W](f: (K, V) => W): LinkedMap3[K, W] = {
+    val linkedList = this.linkedList.clone()
+    LinkedMap3.apply[K, W](linkedList.map(pair => (pair._1, f(pair._1, pair._2))): _*)
   }
 
   /** конструирует новый LinkedMap, содеоржащий все записи текущего, кроме заданного ключа */
-  def delete(key: K): LinkedMap[K, V] = {
-    LinkedMap.apply[K, V]((map - key).toSeq: _*)
+  def delete(key: K): LinkedMap3[K, V] = {
+    val map = this.map.clone()
+    map.remove(key)
+    LinkedMap3.apply[K, V](map.toSeq: _*)
   }
 
   /** применяет действие `action` с побочным эффектом ко всем элементам коллекции */
@@ -59,9 +67,10 @@ sealed trait LinkedMap[K, V] extends Traversable[(K, V)] {
     case obj: LinkedMap[K, V] => obj.linkedList.equals(linkedList)
     case _ => false
   }
+
 }
 
-object LinkedMap {
+object LinkedMap3 {
 
 
   /** конструирует новый `LinkedMap` на основании приведённых элементов
@@ -69,16 +78,18 @@ object LinkedMap {
     * если в исходных данныхх ключ встречается несколько раз, может быть
     * выбрано любое из значений
     */
-  def apply[K, V](kvs: (K, V)*): LinkedMap[K, V] = {
+  def apply[K, V](kvs: (K, V)*): LinkedMap3[K, V] = {
     val linkedMap = new Empty[K, V]()
-    linkedMap.map = linkedMap.map ++ Map(kvs: _*)
-    linkedMap.linkedList = linkedMap.linkedList ++ List(kvs: _*)
+    kvs.foreach(node => {
+      linkedMap.map.put(node._1, node._2)
+      linkedMap.linkedList += node
+    })
     linkedMap
   }
 
-  final case class Cons[K, V](key: K, value: V, rest: LinkedMap[K, V]) extends LinkedMap[K, V]
+  final case class Cons[K, V](key: K, value: V, rest: LinkedMap3[K, V]) extends LinkedMap3[K, V]
 
-  final case class Empty[K, V]() extends LinkedMap[K, V]
+  final case class Empty[K, V]() extends LinkedMap3[K, V]
 
 }
 
