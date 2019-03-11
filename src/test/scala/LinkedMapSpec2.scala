@@ -14,7 +14,6 @@ class LinkedMapSpec2 extends FlatSpec {
     assert(updatedLinkedMap3.apply("7").get == 7)
     assert(updatedLinkedMap3.apply("6").get == 6)
     println(updatedLinkedMap3)
-
     val linkedMap3 = LinkedMap((2147483647,""), (2147483647,""))
     val updated4 = linkedMap3.update(0, "")
     println(updated4)
