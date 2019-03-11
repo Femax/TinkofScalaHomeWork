@@ -1,6 +1,7 @@
 import LinkedMap.{Cons, Empty}
 
 import scala.annotation.tailrec
+import scala.collection.immutable.HashSet
 
 sealed trait LinkedMap[K, V] extends Traversable[(K, V)] {
 
@@ -55,23 +56,14 @@ sealed trait LinkedMap[K, V] extends Traversable[(K, V)] {
     * если какой-то ключ встречается в обеих коллекциях,
     * может быть выбрано любое значение */
   final def ++(other: LinkedMap[K, V]): LinkedMap[K, V] = this match {
-    case Cons(k, v, rest) => ++(other, this.toTailWithReverse())
+    case Cons(k, v, rest) => ++(other, this.reverse, HashSet[K]())
     case Empty() => other
   }
 
-  def ++(other: LinkedMap[K, V], accum: LinkedMap[K, V]): LinkedMap[K, V] = other match {
-    case Cons(k, v, rest) if !accum.contains(k) => {
-      rest.++(rest, Cons(k, v, accum))
-    }
-    case Cons(k, v, rest) if accum.contains(k) => {
-      rest.++(rest, accum)
-    }
+  def ++(other: LinkedMap[K, V], accum: LinkedMap[K, V], keys: HashSet[K]): LinkedMap[K, V] = other match {
+    case Cons(k, v, rest) if !keys.contains(k) => rest.++(rest, Cons(k, v, accum), keys + k)
+    case Cons(k, _, rest) if keys.contains(k) => rest.++(rest, accum, keys)
     case Empty() => accum.reverse
-  }
-
-  @tailrec private def toTailWithReverse(accum: LinkedMap[K, V] = Empty()): LinkedMap[K, V] = this match {
-    case Cons(k, v, rest) => rest.toTailWithReverse(Cons(k, v, accum))
-    case Empty() => accum
   }
 
   /** создаёт новый LinkedMap , где ко всем значениям применена заданная функция */
